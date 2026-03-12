@@ -5,6 +5,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 ytt = YouTubeTranscriptApi()
 
+LANGS = ["en", "el", "de", "fr", "es", "it", "pt", "ru", "ja", "ko", "zh-Hans"]
+
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -16,21 +18,16 @@ class handler(BaseHTTPRequestHandler):
             if not video_id:
                 return self._json(400, {"error": "Missing videoId"})
 
-            transcript_list = ytt.list_transcripts(video_id)
+            transcript_list = ytt.list(video_id)
 
             # Try to find a transcript: prefer manual, then generated, any language
             transcript = None
             try:
-                transcript = transcript_list.find_manually_created_transcript(
-                    ["en", "el", "de", "fr", "es", "it", "pt", "ru", "ja", "ko", "zh-Hans"]
-                )
+                transcript = transcript_list.find_manually_created_transcript(LANGS)
             except Exception:
                 try:
-                    transcript = transcript_list.find_generated_transcript(
-                        ["en", "el", "de", "fr", "es", "it", "pt", "ru", "ja", "ko", "zh-Hans"]
-                    )
+                    transcript = transcript_list.find_generated_transcript(LANGS)
                 except Exception:
-                    # Grab whatever is available
                     for t in transcript_list:
                         transcript = t
                         break
@@ -38,8 +35,8 @@ class handler(BaseHTTPRequestHandler):
             if not transcript:
                 return self._json(404, {"error": "No transcript available"})
 
-            snippets = transcript.fetch()
-            text = " ".join(s.text for s in snippets)
+            fetched = transcript.fetch()
+            text = " ".join(snippet.text for snippet in fetched)
 
             return self._json(200, {"transcript": text, "language": transcript.language})
 
