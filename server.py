@@ -40,7 +40,19 @@ def transcript():
 
 @app.route("/api/transcript", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"}), 200
+    import subprocess
+    warp_status = "unknown"
+    try:
+        result = subprocess.run(
+            ["warp-cli", "--accept-tos", "status"],
+            capture_output=True, text=True, timeout=5
+        )
+        warp_status = result.stdout.strip() or result.stderr.strip()
+    except Exception as e:
+        warp_status = str(e)
+
+    proxy = os.environ.get("ALL_PROXY", "not set")
+    return jsonify({"status": "ok", "warp": warp_status, "proxy": proxy}), 200
 
 
 if __name__ == "__main__":
